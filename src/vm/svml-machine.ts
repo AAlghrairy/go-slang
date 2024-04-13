@@ -648,6 +648,13 @@ function GET_NUM_IDLE_THREADS() {
   RES = scheduler.numIdle()
 }
 
+// Kills all the threads (to be used after main thread dies)
+function KILL_ALL_THREADS() {
+  scheduler.killAllThreads()
+  threads.clear()
+}
+
+
 function scheduler_state_string() {
   return new Array(scheduler.idleThreads).toString()
 }
@@ -1657,11 +1664,13 @@ function RUN_INSTRUCTION() {
     M[P[PC][INS_OPCODE_OFFSET]]()
     TO = TO - 1
   } else {
-
+    // current thread is expected to be deleted/killed here. If it's main, then kill all threads
     if (currentThreadId === 0) {
-      DELETE_CURRENT_THREAD()
       MAIN_END = true
       RUNNING = false
+      KILL_ALL_THREADS()
+      GET_NUM_IDLE_THREADS()
+      return
     }
     // end of current thread, try to setup another thread
     DELETE_CURRENT_THREAD()
@@ -1718,7 +1727,7 @@ function run(): any {
   // return convertToJsFormat(RES)
   // Source 3 Concurrent programs do not return anything.
   if (MAIN_END) {
-    return "main thread has terminated"
+    return 'main thread has terminated'
   } else {
     return 'all threads terminated'
   }

@@ -23,6 +23,8 @@ export interface Scheduler {
   runThread(): [ThreadId, number] | null
   // Tell scheduler which thread should be paused and placed back into the idle threads.
   pauseThread(id: ThreadId): void
+  // Kills all threads
+  killAllThreads(): void
 }
 
 export class RoundRobinScheduler implements Scheduler {
@@ -77,5 +79,10 @@ export class RoundRobinScheduler implements Scheduler {
   pauseThread(id: ThreadId): void {
     this._currentThreads.delete(id)
     this._idleThreads.push(id)
+  }
+
+  killAllThreads() {
+    this._currentThreads.clear()
+    this._idleThreads = []
   }
 }
