@@ -1,0 +1,113 @@
+function make_channel() {
+    let variable = undefined;
+    const mutex = make_mutex();
+    function the_channel(type, write) {
+        lock(mutex);
+        if (type === "write") {
+            if (variable === undefined) {
+                variable = write;
+                unlock(mutex);
+            } else {
+                unlock(mutex);
+                return the_channel(type, write); //recursive write
+                
+                // error("Channel already written");
+            }
+        } else if (type === "read") {
+            if (variable === undefined) {
+                unlock(mutex);
+                return the_channel(type, write); //recursive read
+                
+            } else {
+                const temp = variable;
+                variable = undefined;
+                unlock(mutex);
+                return temp;
+            }
+        } else {
+            error(type, "unknown type -- channel");
+            unlock(mutex);
+        }
+    }
+    
+    return the_channel;
+}
+
+function read(channel) {
+    return channel("read", 0);
+}
+
+function write(channel, write) {
+    return channel("write", write);//(write);
+}
+
+
+function make_mutex() { // based on make_mutex in SICPJS 3.4.2
+    const cell = list(false);
+    function the_mutex(m) {
+        return m === "lock"
+               ? test_and_set(cell)
+                 ? the_mutex("lock") // retry
+                 : true
+               : m === "unlock"
+               ? clear(cell)
+               : error(m, "unknown request -- mutex");
+    }
+    return the_mutex;
+}
+
+function lock(M) {
+    M("lock");
+    return true;
+}
+
+function unlock(M) {
+    M("unlock");
+    return true;
+}
+
+let x = 0;
+const channel = make_channel();
+const channel2 = make_channel();
+
+const channel3 = make_channel();
+
+//const mutex = make_mutex();
+
+// concurrent_execute(() => {
+//     for(let i = 0; i < 100; i=i+1) {
+//         lock(mutex);
+//         x = x + 1;
+//         display(x);
+//         unlock(mutex);
+//     }
+    
+// },
+// () => {
+//     for(let j = 0; j < 100; j=j+1) {
+//         lock(mutex);
+//         x = x - 1;
+//         display(x);
+//         unlock(mutex);
+//     }
+// }
+// );
+
+// concurrent_execute(() => { write(channel, 15); display(read(channel)); },
+//                   () => { write(channel, 10); display(read(channel)); },
+//                   () => { write(channel, 5); display(read(channel)); }
+//                   );
+
+// concurrent_execute(() => { display(read(channel)); },
+//                   () => { write(channel, 15); },
+//                   () => { display(read(channel)); },
+//                   () => { write(channel, 10); },
+//                   () => { display(read(channel)); },
+//                   () => { write(channel, 5); });
+
+// for(let i = 0; i < 60; i=i+1) {
+//     concurrent_execute(() => { write(channel, 1); },
+//                   () => { display(read(channel)); },
+//                   () => { write(channel, 2); },
+//                   () => { display(read(channel)); });
+// }
