@@ -140,6 +140,9 @@ export function show_registers(s: string, isShowExecuting = true) {
 // register that says if machine is running
 let RUNNING = true
 
+// register that says if the main thread has ended
+let MAIN_END = false
+
 const NORMAL = 0
 const DIV_ERROR = 1
 const TYPE_ERROR = 2
@@ -657,24 +660,24 @@ function node_kind(x: number) {
   return x === NUMBER_TAG
     ? 'number'
     : x === BOOL_TAG
-    ? 'boolean'
-    : x === CLOSURE_TAG
-    ? 'closure'
-    : x === RTS_FRAME_TAG
-    ? 'RTS frame'
-    : x === OS_TAG
-    ? 'OS'
-    : x === ENV_TAG
-    ? 'environment'
-    : x === UNDEFINED_TAG
-    ? 'undefined'
-    : x === NULL_TAG
-    ? 'null'
-    : x === STRING_TAG
-    ? 'string'
-    : x === ARRAY_TAG
-    ? 'array'
-    : ' (unknown node kind)'
+      ? 'boolean'
+      : x === CLOSURE_TAG
+        ? 'closure'
+        : x === RTS_FRAME_TAG
+          ? 'RTS frame'
+          : x === OS_TAG
+            ? 'OS'
+            : x === ENV_TAG
+              ? 'environment'
+              : x === UNDEFINED_TAG
+                ? 'undefined'
+                : x === NULL_TAG
+                  ? 'null'
+                  : x === STRING_TAG
+                    ? 'string'
+                    : x === ARRAY_TAG
+                      ? 'array'
+                      : ' (unknown node kind)'
 }
 export function show_heap(s: string) {
   const len = HEAP.length
@@ -1654,6 +1657,12 @@ function RUN_INSTRUCTION() {
     M[P[PC][INS_OPCODE_OFFSET]]()
     TO = TO - 1
   } else {
+
+    if (currentThreadId === 0) {
+      DELETE_CURRENT_THREAD()
+      MAIN_END = true
+      RUNNING = false
+    }
     // end of current thread, try to setup another thread
     DELETE_CURRENT_THREAD()
     GET_NUM_IDLE_THREADS()
@@ -1708,7 +1717,11 @@ function run(): any {
   // show_heap_value(RES)
   // return convertToJsFormat(RES)
   // Source 3 Concurrent programs do not return anything.
-  return 'all threads terminated'
+  if (MAIN_END) {
+    return "main thread has terminated"
+  } else {
+    return 'all threads terminated'
+  }
 }
 
 function getErrorType(): string {
@@ -1785,6 +1798,7 @@ export function runWithProgram(p: Program, context: Context): any {
   TOP_RTS = -1
   STATE = NORMAL
   RUNNING = true
+  MAIN_END = false
   ERROR_MSG_ARGS = []
 
   INIT_SCHEDULER()
