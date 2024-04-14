@@ -1665,7 +1665,7 @@ function RUN_INSTRUCTION() {
     TO = TO - 1
   } else {
     // current thread is expected to be deleted/killed here. If it's main, then kill all threads
-    if (currentThreadId === 0) {
+    if (currentThreadId === -1) {
       MAIN_END = true
       RUNNING = false
       KILL_ALL_THREADS()
