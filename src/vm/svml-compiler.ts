@@ -17,7 +17,8 @@ import OpCodes from './opcodes'
 
 const VALID_UNARY_OPERATORS = new Map([
   ['!', OpCodes.NOTG],
-  ['-', OpCodes.NEGG]
+  ['-', OpCodes.NEGG],
+  ['<-', OpCodes.CHANNEL_READ]
 ])
 const VALID_BINARY_OPERATORS = new Map([
   ['+', OpCodes.ADDG],
@@ -30,7 +31,8 @@ const VALID_BINARY_OPERATORS = new Map([
   ['<=', OpCodes.LEG],
   ['>=', OpCodes.GEG],
   ['===', OpCodes.EQG],
-  ['!==', OpCodes.NEQG]
+  ['!==', OpCodes.NEQG],
+  ['<-', OpCodes.CHANNEL_WRITE]
 ])
 
 export type Offset = number // instructions to skip
@@ -630,7 +632,8 @@ const compilers = {
   UnaryExpression(node: Node, indexTable: Map<string, EnvEntry>[], insertFlag: boolean) {
     node = node as es.UnaryExpression
     if (VALID_UNARY_OPERATORS.has(node.operator)) {
-      const opCode = VALID_UNARY_OPERATORS.get(node.operator) as number
+      let opCode = VALID_UNARY_OPERATORS.get(node.operator) as number
+      if (opCode === OpCodes.CHANNEL_READ) opCode = OpCodes.NEGG
       const { maxStackSize } = compile(node.argument, indexTable, false)
       addNullaryInstruction(opCode)
       return { maxStackSize, insertFlag }
@@ -641,7 +644,8 @@ const compilers = {
   BinaryExpression(node: Node, indexTable: Map<string, EnvEntry>[], insertFlag: boolean) {
     node = node as es.BinaryExpression
     if (VALID_BINARY_OPERATORS.has(node.operator)) {
-      const opCode = VALID_BINARY_OPERATORS.get(node.operator) as number
+      let opCode = VALID_BINARY_OPERATORS.get(node.operator) as number
+      if (opCode === OpCodes.CHANNEL_WRITE) opCode = OpCodes.ADDG
       const { maxStackSize: m1 } = compile(node.left, indexTable, false)
       const { maxStackSize: m2 } = compile(node.right, indexTable, false)
       addNullaryInstruction(opCode)

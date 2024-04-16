@@ -43,7 +43,8 @@ const noUnspecifiedOperator: Rule<es.BinaryExpression | es.UnaryExpression> = {
         '<=',
         '>=',
         '&&',
-        '||'
+        '||',
+        '<-'
       ]
       if (!permittedOperators.includes(node.operator)) {
         return [new NoUnspecifiedOperatorError(node)]
@@ -52,7 +53,7 @@ const noUnspecifiedOperator: Rule<es.BinaryExpression | es.UnaryExpression> = {
       }
     },
     UnaryExpression(node: es.UnaryExpression) {
-      const permittedOperators = ['-', '!', 'typeof']
+      const permittedOperators = ['-', '!', 'typeof', '<-']
       if (!permittedOperators.includes(node.operator)) {
         return [new NoUnspecifiedOperatorError(node)]
       } else {

@@ -84,6 +84,8 @@ export enum OpCodes {
   NEQG = 82,
   NEQF = 83,
   NEQB = 84,
+  CHANNEL_READ = 85,
+  CHANNEL_WRITE = 86,
 
   // custom opcodes
   ARRAY_LEN = 1000,
