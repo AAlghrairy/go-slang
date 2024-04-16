@@ -486,6 +486,54 @@ function compileStatements(
   return { maxStackSize, insertFlag: false }
 }
 
+const compileCall = (
+  callee: es.Expression | es.Super,
+  arguments_arr: Array<es.Expression | es.SpreadElement>,
+  indexTable: Map<string, EnvEntry>[],
+  insertFlag: boolean,
+  isTailCallPosition: boolean = false
+) => {
+  let maxStackOperator = 0
+  let callType: 'normal' | 'primitive' | 'internal' = 'normal'
+  let callValue: any = NaN
+  if (callee.type === 'Identifier') {
+    const callee_ident = callee as es.Identifier
+    const { envLevel, index, type } = indexOf(indexTable, callee_ident)
+    if (type === 'primitive' || type === 'internal') {
+      callType = type
+      callValue = index
+    } else if (envLevel === 0) {
+      addUnaryInstruction(OpCodes.LDLG, index)
+    } else {
+      addBinaryInstruction(OpCodes.LDPG, index, envLevel)
+    }
+  } else {
+    ;({ maxStackSize: maxStackOperator } = compile(callee, indexTable, false))
+  }
+
+  let maxStackOperands = compileArguments(arguments_arr, indexTable)
+
+  if (callType === 'primitive') {
+    addBinaryInstruction(
+      isTailCallPosition ? OpCodes.CALLTP : OpCodes.CALLP,
+      callValue,
+      arguments_arr.length
+    )
+  } else if (callType === 'internal') {
+    addBinaryInstruction(
+      isTailCallPosition ? OpCodes.CALLTV : OpCodes.CALLV,
+      callValue,
+      arguments_arr.length
+    )
+  } else {
+    // normal call. only normal function calls have the function on the stack
+    addUnaryInstruction(isTailCallPosition ? OpCodes.CALLT : OpCodes.CALL, arguments_arr.length)
+    maxStackOperands++
+  }
+  // need at least 1 stack slot for the return value!
+  return { maxStackSize: Math.max(maxStackOperator, maxStackOperands, 1), insertFlag }
+}
+
 // each compiler should return a maxStackSize
 const compilers = {
   // wrapper
@@ -588,52 +636,25 @@ const compilers = {
     isTailCallPosition: boolean = false
   ) {
     node = node as es.CallExpression
-    let maxStackOperator = 0
-    let callType: 'normal' | 'primitive' | 'internal' = 'normal'
-    let callValue: any = NaN
-    if (node.callee.type === 'Identifier') {
-      const callee = node.callee as es.Identifier
-      const { envLevel, index, type } = indexOf(indexTable, callee)
-      if (type === 'primitive' || type === 'internal') {
-        callType = type
-        callValue = index
-      } else if (envLevel === 0) {
-        addUnaryInstruction(OpCodes.LDLG, index)
-      } else {
-        addBinaryInstruction(OpCodes.LDPG, index, envLevel)
-      }
-    } else {
-      ;({ maxStackSize: maxStackOperator } = compile(node.callee, indexTable, false))
-    }
-
-    let maxStackOperands = compileArguments(node.arguments, indexTable)
-
-    if (callType === 'primitive') {
-      addBinaryInstruction(
-        isTailCallPosition ? OpCodes.CALLTP : OpCodes.CALLP,
-        callValue,
-        node.arguments.length
-      )
-    } else if (callType === 'internal') {
-      addBinaryInstruction(
-        isTailCallPosition ? OpCodes.CALLTV : OpCodes.CALLV,
-        callValue,
-        node.arguments.length
-      )
-    } else {
-      // normal call. only normal function calls have the function on the stack
-      addUnaryInstruction(isTailCallPosition ? OpCodes.CALLT : OpCodes.CALL, node.arguments.length)
-      maxStackOperands++
-    }
-    // need at least 1 stack slot for the return value!
-    return { maxStackSize: Math.max(maxStackOperator, maxStackOperands, 1), insertFlag }
+    return compileCall(node.callee, node.arguments, indexTable, insertFlag, isTailCallPosition)
   },
 
   UnaryExpression(node: Node, indexTable: Map<string, EnvEntry>[], insertFlag: boolean) {
     node = node as es.UnaryExpression
     if (VALID_UNARY_OPERATORS.has(node.operator)) {
       let opCode = VALID_UNARY_OPERATORS.get(node.operator) as number
-      if (opCode === OpCodes.CHANNEL_READ) opCode = OpCodes.NEGG
+      if (opCode === OpCodes.CHANNEL_READ) {
+        // compile as first("read", 0)
+        return compileCall(
+          node.argument,
+          [
+            { type: 'Literal', value: 'read' } as es.SimpleLiteral,
+            { type: 'Literal', value: 0 } as es.SimpleLiteral
+          ],
+          indexTable,
+          insertFlag
+        )
+      }
       const { maxStackSize } = compile(node.argument, indexTable, false)
       addNullaryInstruction(opCode)
       return { maxStackSize, insertFlag }
@@ -645,7 +666,15 @@ const compilers = {
     node = node as es.BinaryExpression
     if (VALID_BINARY_OPERATORS.has(node.operator)) {
       let opCode = VALID_BINARY_OPERATORS.get(node.operator) as number
-      if (opCode === OpCodes.CHANNEL_WRITE) opCode = OpCodes.ADDG
+      if (opCode === OpCodes.CHANNEL_WRITE) {
+        // compile as first("write", second)
+        return compileCall(
+          node.left,
+          [{ type: 'Literal', value: 'write' } as es.SimpleLiteral, node.right],
+          indexTable,
+          insertFlag
+        )
+      }
       const { maxStackSize: m1 } = compile(node.left, indexTable, false)
       const { maxStackSize: m2 } = compile(node.right, indexTable, false)
       addNullaryInstruction(opCode)
