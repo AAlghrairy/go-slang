@@ -10,8 +10,6 @@ function make_channel() {
             } else {
                 unlock(mutex);
                 return the_channel(type, write); //recursive write
-                
-                // error("Channel already written");
             }
         } else if (type === "read") {
             if (variable === undefined) {
