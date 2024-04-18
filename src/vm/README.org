@@ -17,13 +17,13 @@ Please refer to Appendix A for explanations about compilation rules and VM trans
 ** Overview
 This concurrent system consists of concurrently executing (potentially multiple) code in multiple threads. Communication between threads is achieved by updating the values of memory shared between threads. Each thread is a collection of registers $\textit{os}, \textit{pc}, \textit{e}, \textit{rs}$, and at the expiration of the time quantum, the concurrent system executes the next thread in the thread queue.
 
-To comply with the textbook, the thread that calls =concurrent_execute= also continues to execute the rest of its code concurrently with the threads. Furthermore, there is no =join= primitive concurrent function.
+To comply with the textbook, the thread that calls =go= also continues to execute the rest of its code concurrently with the threads. Furthermore, there is no =join= primitive concurrent function.
 
 However, this design departs from the textbook, as the system does not execute parallel threads. Instead, it executes concurrent threads.
 
 ** Concurrency Support
 The following concurrent functions are supported:
-- $\texttt{concurrent_execute(}\texttt{f}_\texttt{1}, \cdots \texttt{f}_\texttt{n}\texttt{)}$: $\textit{primitive}$, setup multiple threads for concurrent execution. For each nullary function $\texttt{f}_\texttt{i}$ that returns =undefined=, setup a thread $\texttt{t}_\texttt{i}$ that executes the code in the body of $\texttt{f}_\texttt{i}$. The thread that called =concurrent_execute= also executes concurrently with all $\texttt{t}_\texttt{i}$. Returns =undefined=. This is an atomic operation.
+- $\texttt{go(}\texttt{f}_\texttt{1}, \cdots \texttt{f}_\texttt{n}\texttt{)}$: $\textit{primitive}$, setup multiple threads for concurrent execution. For each nullary function $\texttt{f}_\texttt{i}$ that returns =undefined=, setup a thread $\texttt{t}_\texttt{i}$ that executes the code in the body of $\texttt{f}_\texttt{i}$. The thread that called =go= also executes concurrently with all $\texttt{t}_\texttt{i}$. Returns =undefined=. This is an atomic operation.
 - =test_and_set(a)=: $\textit{primitive}$, assumes the head of array =a= is a boolean $b$. Sets the head of =a= to =true=. Returns $b$. This is an atomic operation.
 - =clear(a)=: $\textit{primitive}$, sets the head of array =a= to =false=. Returns =undefined=. This is an atomic operation.
 
@@ -33,7 +33,7 @@ The following concurrent functions are supported:
 - For simplicity, heap is not represented in the rules.
 
 *** Compiling
-$$\Rule{E_1 \translateaux s_1 \qquad \cdots \qquad E_n \translateaux s_n}{\texttt{concurrent_execute}(E_1, \cdots , E_n) \translateaux s_1. \cdots .s_n.\texttt{CALLV id n}}$$
+$$\Rule{E_1 \translateaux s_1 \qquad \cdots \qquad E_n \translateaux s_n}{\texttt{go}(E_1, \cdots , E_n) \translateaux s_1. \cdots .s_n.\texttt{CALLV id n}}$$
 Each of $s_1. \cdots .s_n$ is a string of VM instruction that loads a closure onto the operand stack, and $id$ is the opcode of =EXECUTE=.
 
 *** Running
@@ -46,9 +46,9 @@ The initial state of our VM is a $\textit{pc}$, which has empty $\textit{os}$, $
 $$(\langle \rangle, \textit{pc}, \langle \rangle, \langle \rangle, \langle \rangle, 0)$$
 
 Some notes on program execution:
-0. When the program calls =concurrent_execute=, it executes the rest of its code along with the concurrent threads, therefore the sequential program becomes a concurrent thread.
+0. When the program calls =go=, it executes the rest of its code along with the concurrent threads, therefore the sequential program becomes a concurrent thread.
 0. Consider the case when a program does not use any primitive concurrent functions. To avoid distinguishing between the case when the program is sequential and the program is concurrent, therefore simplifying the rules, the sequential program must still execute like a concurrent thread. This means sequential execution may time out, and may be pushed and popped from the thread queue. However, implementations of the VM may, as an optimization, avoid pushing and popping while executing sequential code.
-0. As a result, all programs here are concurrent programs, even if they do not call =concurrent_execute=.
+0. As a result, all programs here are concurrent programs, even if they do not call =go=.
 0. None of the programs here return a result, because concurrent programs should not return a result, since concurrent threads return nothing.
 
 Design choices:
@@ -58,7 +58,7 @@ Design choices:
    We achieved this by inserting uniform randomness into the scheduling algorithm.
 0. With round-robin scheduling, where resource starvation is impossible, there are three possible ways of inserting uniform randomness, but some introduce starvation (in each way of inserting uniform randomness, we assume all other parts of the scheduling are non-random):
    - Random removal from the thread queue :: $\textit{allows starvation}$, since it is possible for some thread to never be removed, and thus never be scheduled.
-   - Random insertion into the thread queue :: $\textit{allows starvation}$, since from all concurrent threads $t_i$, whenever some concurrent thread $t_n$ performs a nested call of =concurrent_execute= that spawns children, it is possible for $t_n$'s children to be scheduled in front of all $t_i$ in the thread queue. If this scenario repeats again for nested calls to =concurrent_execute= in each of $t_n$'s children, then none of $t_i$ will ever be scheduled.
+   - Random insertion into the thread queue :: $\textit{allows starvation}$, since from all concurrent threads $t_i$, whenever some concurrent thread $t_n$ performs a nested call of =go= that spawns children, it is possible for $t_n$'s children to be scheduled in front of all $t_i$ in the thread queue. If this scenario repeats again for nested calls to =go= in each of $t_n$'s children, then none of $t_i$ will ever be scheduled.
    - Random time quanta :: $\textit{does not allow starvation}$, since no priority is assigned to concurrent threads, so the ordering of existing concurrent threads in the thread queue is respected.
    Therefore, to avoid starvation, we choose to insert uniform randomness by allocating uniformly random time quanta to concurrent threads.
    This choice of inserting uniform randomness has the additional benefit of also being fair when the execution time of a single run goes to infinity: the expected amount of time allocated to each concurrent thread is equal.
@@ -89,8 +89,8 @@ $$\Rule{s(\textit{pc}) = \texttt{EXECUTE n} \qquad \textit{to} > 0}{
 \transition &(\textit{os}, \textit{pc}, \textit{e}, \textit{rs}, (\langle \rangle, \textit{pc}_1, \textit{e}_1, \langle \rangle). \cdots .(\langle \rangle, \textit{pc}_n, \textit{e}_n, \langle \rangle), \textit{to}-1)
 \end{aligned}}$$
 Closures representing threads $t_i$ (two-tuples of $\textit{pc}_i$ and $\textit{e}_i$) on the operand stack are converted into threads $t_i$. Thread $t_i$ is a four-tuple of each thread $t_i$'s own $\textit{os}_i$, $\textit{pc}_i$, $\textit{e}_i$, and $\textit{rs}_i$. Initially, thread $t_i$ has empty $\textit{os}_i$ and empty $\textit{rs}_i$.
-The thread that calls =concurrent_execute= also continues to execute concurrently with the other threads. This is shown by the $\textit{os}, \textit{pc}, \textit{e}, \textit{rs}$ being in the machine state after the transition arrow, and shown by the timeout decrementing.
-Note: we decrement timeout instead of setting a random timeout, since setting a random timeout makes starvation possible: the thread that only calls =concurrent_execute=, and calls =concurrent_execute= infinitely many times, will always be run.
+The thread that calls =go= also continues to execute concurrently with the other threads. This is shown by the $\textit{os}, \textit{pc}, \textit{e}, \textit{rs}$ being in the machine state after the transition arrow, and shown by the timeout decrementing.
+Note: we decrement timeout instead of setting a random timeout, since setting a random timeout makes starvation possible: the thread that only calls =go=, and calls =go= infinitely many times, will always be run.
 
 **** Returning from thread
 $$\Rule{s(\textit{pc}_1) = \texttt{RET} \qquad \textit{to} > 0 \qquad \textit{rs}_1 = \langle \rangle}{(\textit{os}_1, \textit{pc}_1, \textit{e}_1, \textit{rs}_1, (\textit{os}_2, \textit{pc}_2, \textit{e}_2, \textit{rs}_2).\textit{tq}, 0) \transition (\textit{os}_2, \textit{pc}_2, \textit{e}_2, \textit{rs}_2, \textit{tq}, c)}$$
@@ -134,7 +134,7 @@ The translation from SourceA to SVML is accomplished by a function
 $$\translate: \textrm{SourceA} \rightarrow \textrm{SVML}$$
 which uses the auxilary translation function $\translateaux$.
 
-The auxiliary translation function $\translateaux$ is defined by many rules, some of which we have already covered in this document: the rules for =concurrent_execute=, =test_and_set=, and =clear=.
+The auxiliary translation function $\translateaux$ is defined by many rules, some of which we have already covered in this document: the rules for =go=, =test_and_set=, and =clear=.
 The other rules for the auxiliary translation function $\translateaux$ will not be covered in this document. Instead, please refer to the document [[file:svml-spec.pdf][Source Virtual Machine Language]].
 
 ** VM transition rules

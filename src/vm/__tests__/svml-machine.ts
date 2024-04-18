@@ -1496,7 +1496,7 @@ test('concurrent program execution interleaves', () => {
         display('t2');
       }
     };
-    concurrent_execute(t1, t2);
+    go(t1, t2);
     for(let i = 0; i < 50; i = i + 1) {
       display('main');
     }
@@ -1565,7 +1565,7 @@ test('concurrent program execution interleaves (busy wait)', () => {
         display('t2');
       }
     };
-    concurrent_execute(t1, t2);
+    go(t1, t2);
     while (state < 10) {
       if (state % 3 === 2) {
         state = state + 1;

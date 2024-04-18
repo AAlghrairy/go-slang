@@ -4,13 +4,13 @@
  * setup a thread <CODE>t_i</CODE> that executes the body of
  * <CODE>f_i</CODE>. Any parameters of <CODE>f_i</CODE> refer
  * to <CODE>undefined</CODE> during execution.
- * The thread that called <CODE>concurrent_execute</CODE>
+ * The thread that called <CODE>go</CODE>
  * runs concurrently with all <CODE>t_i</CODE>. Returns
  * <CODE>undefined</CODE>. This is an atomic operation.
  * @param {function} f_1,f_2,...,f_n - given functions
  * @returns {undefined} undefined
  */
-function concurrent_execute() {}
+function go() {}
 
 /**
  * Assumes the head of pair <CODE>p</CODE> is a boolean

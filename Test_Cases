@@ -1,13 +1,13 @@
 //Case 1
 const mutex = make_mutex();
 
-concurrent_execute(() => {lock(mutex); unlock(mutex);});
+go(() => {lock(mutex); unlock(mutex);});
 
 //Case 2
 const mutex = make_mutex();
 let x = 0;
 
-concurrent_execute(() => {
+go(() => {
                             lock(mutex);
                             x = x + 1;
                             unlock(mutex);
@@ -30,7 +30,7 @@ display(x);
 
 const mutex = make_mutex();
 
-concurrent_execute(() => {
+go(() => {
     for(let i = 0; i < 40; i=i+1) {
         lock(mutex);
         x = x + 1;
@@ -57,7 +57,7 @@ for(let i = 0; i < 500; i = i + 1) {
 
 const channel = make_channel();
 
-concurrent_execute(() => { write(channel, 15); display(read(channel)); },
+go(() => { write(channel, 15); display(read(channel)); },
                   () => { write(channel, 10); display(read(channel)); },
                   () => { write(channel, 5); display(read(channel)); }
                   );
@@ -71,7 +71,7 @@ for(let i = 0; i < 100; i = i + 1) {
 
 const channel = make_channel();
 
-concurrent_execute(() => { display(read(channel)); },
+go(() => { display(read(channel)); },
                   () => { write(channel, 15); },
                   () => { display(read(channel)); },
                   () => { write(channel, 10); },
@@ -87,7 +87,7 @@ for(let i = 0; i < 100; i = i + 1) {
 
 const channel = make_channel();
 
-concurrent_execute(() => { display("A"); display("A"); display("A");},
+go(() => { display("A"); display("A"); display("A");},
                   () => { display("B"); display("B"); display("B");},
                   () => { display("C"); display("C"); display("C");}
                   );
@@ -101,7 +101,7 @@ display("END");
 const channel = make_channel();
 
 for(let i = 0; i < 60; i=i+1) {
-    concurrent_execute(() => { write(channel, 1); },
+    go(() => { write(channel, 1); },
                   () => { display(read(channel)); },
                   () => { write(channel, 2); },
                   () => { display(read(channel)); });
@@ -111,7 +111,7 @@ for(let i = 0; i < 60; i=i+1) {
 
 const channel = make_channel();
 
-concurrent_execute(() => { write(channel, "test");}
+go(() => { write(channel, "test");}
                   );
 
 display(read(channel));
@@ -122,7 +122,7 @@ const channel1 = make_channel();
 const channel2 = make_channel();
 const channel3 = make_channel();
 
-concurrent_execute(() => { write(channel1, read(channel2));},
+go(() => { write(channel1, read(channel2));},
                    () => { write(channel2, read(channel3));},
                    () => { write(channel3, 1);}
                   );
@@ -134,7 +134,7 @@ display(read(channel1));
 const channel1 = make_channel();
 const channel2 = make_channel();
 
-concurrent_execute(() => { write(channel1, x => (write(channel2, x)));}
+go(() => { write(channel1, x => (write(channel2, x)));}
                   );
 
 const fun = read(channel1);
