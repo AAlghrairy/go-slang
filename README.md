@@ -1,4 +1,37 @@
-# js-slang
+# Abdulelah & Yihe's CS4215 Term Project Repository
+
+This is the repository that contains the backend part of our CS4215 Term Project,
+a modification on Source 3 Concurrency to add some Go concurrency features, including:
+- `go` for thread creation
+- Channel syntax `<-` (requires inclusion of [optional repository](https://github.com/Mick235711/acorn))
+- Modifying the underlying VM such that the program terminates if the main thread terminates
+
+To build our fork, please do the following:
+1. (Optional) clone the optional repository, enter the directory and build it by:
+```bash
+$ yarn install
+$ yarn build
+$ cd acorn
+$ yarn link
+```
+2. Clone this backend repository, enter the directory and build it by:
+```bash
+$ yarn install
+$ yarn link "acorn"  # only necessary if you build the optional repo
+$ yarn build
+$ yarn link
+```
+3. Clone the [official frontend](https://github.com/source-academy/frontend), enter the directory and start the server by:
+```bash
+$ yarn install
+$ yarn link "js-slang"
+$ yarn run start
+```
+4. Visit [https://localhost:8000](https://localhost:8000) to open a local Source Academy session
+5. Switch to Source 3 Concurrency variant, and copy the [Mutex_and_channels](https://github.com/AAlghrairy/go-slang/blob/master/Mutex_and_Channels) support file in
+
+The original README follows.
+# js-slang (including "Source 3 Concurrency Go-Lang")
 
 Open-source implementations of the programming language _Source_. Source is a series of small subsets of JavaScript, designed for teaching university-level programming courses for computer science majors, following Structure and Interpretation of Computer Programs, JavaScript Adaptation (<https://sourceacademy.org/sicpjs/>).
 
