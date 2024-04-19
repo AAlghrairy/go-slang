@@ -19,6 +19,7 @@ This concurrent system consists of concurrently executing (potentially multiple)
 
 To comply with the textbook, the thread that calls =go= also continues to execute the rest of its code concurrently with the threads. Furthermore, there is no =join= primitive concurrent function.
 
+In contrast with the default implementation of =concurrent_execute=, =go= will act as the mother thread whereby the remainder of the threads will terminate alongside it, to coincide with Go language behavior.
 However, this design departs from the textbook, as the system does not execute parallel threads. Instead, it executes concurrent threads.
 
 ** Concurrency Support

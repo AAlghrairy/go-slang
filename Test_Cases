@@ -20,9 +20,7 @@ go(() => {
 
                          });
 
-for(let i = 0; i < 50; i = i + 1) {
-    // do nothing
-}
+wait(50);
 
 display(x);
 
@@ -50,9 +48,7 @@ go(() => {
 }
 );
 
-for(let i = 0; i < 500; i = i + 1) {
-    // wait
-}
+wait(500);
 
 //Case 4
 
@@ -63,9 +59,7 @@ go(() => { write(channel, 15); display(read(channel)); },
                   () => { write(channel, 5); display(read(channel)); }
                   );
 
-for(let i = 0; i < 100; i = i + 1) {
-    // wait
-}
+wait(100);
 
 
 //Case 5
@@ -80,9 +74,7 @@ go(() => { display(read(channel)); },
                   () => { write(channel, 5); });
 
 
-for(let i = 0; i < 100; i = i + 1) {
-    // wait
-}
+wait(100);
 
 //Case 6
 
@@ -124,8 +116,8 @@ const channel2 = make_channel();
 const channel3 = make_channel();
 
 go(() => { write(channel1, read(channel2));},
-                   () => { write(channel2, read(channel3));},
-                   () => { write(channel3, 1);}
+                  () => { write(channel2, read(channel3));},
+                  () => { write(channel3, 1);}
                   );
 
 display(read(channel1));

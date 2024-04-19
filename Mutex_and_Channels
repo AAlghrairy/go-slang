@@ -63,3 +63,10 @@ function unlock(M) {
     M("unlock");
     return true;
 }
+
+function wait(N) {
+    for(let i = 0; i < N; i = i + 1) {
+    // wait for N execution traces
+    // incorporates busy waiting
+    }
+}
